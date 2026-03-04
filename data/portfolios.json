@@ -1,0 +1,19 @@
+{
+    "amanpreet": [
+        {
+            "stock": "RELIANCE.NS",
+            "buy_price": 1428.0,
+            "quantity": 3
+        },
+        {
+            "stock": "INFY.NS",
+            "buy_price": 1327.5,
+            "quantity": 3
+        },
+        {
+            "stock": "HDFCBANK.NS",
+            "buy_price": 923.5999755859375,
+            "quantity": 2
+        }
+    ]
+}
