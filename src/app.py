@@ -162,17 +162,103 @@ def get_processed_data(symbol, file_name, live=False):
     
     return df.dropna()
 
-df = get_processed_data(stock_name, stocks[stock_name], use_live)
+# ================= INDICATORS =================
+def calculate_indicators(df):
+    # SMA
+    df["sma_20"] = df["close"].rolling(20).mean()
+    df["sma_50"] = df["close"].rolling(50).mean()
+    # RSI 14
+    delta = df["close"].diff()
+    gain = delta.clip(lower=0)
+    loss = -1 * delta.clip(upper=0)
+    avg_gain = gain.rolling(14).mean()
+    avg_loss = loss.rolling(14).mean()
+    rs = avg_gain / (avg_loss + 1e-6)
+    df["rsi_14"] = 100 - (100 / (1 + rs))
+    return df
+
+# ================= INDICATORS =================
+def calculate_indicators(df):
+    # SMA
+    df["sma_20"] = df["close"].rolling(20).mean()
+    df["sma_50"] = df["close"].rolling(50).mean()
+    # RSI 14
+    delta = df["close"].diff()
+    gain = delta.clip(lower=0)
+    loss = -1 * delta.clip(upper=0)
+    avg_gain = gain.rolling(14).mean()
+    avg_loss = loss.rolling(14).mean()
+    rs = avg_gain / (avg_loss + 1e-6)
+    df["rsi_14"] = 100 - (100 / (1 + rs))
+    return df
+
+df = calculate_indicators(df)
 latest = df.iloc[-1]
-info = yf.Ticker(stock_name + ".NS").info
 
 # ================= PREDICTION =================
-reg_model = joblib.load(os.path.join(MODEL_PATH, stocks[stock_name].replace(".csv","_rf_regression.pkl")))
-X = latest[["open","high","low","close","volume","daily_return","sma_10","sma_20","sma_50"]].values.reshape(1,-1)
-pred_price = reg_model.predict(X)[0]
+# Features used in training (must match your trained model)
+FEATURES = ["open","high","low","close","volume","daily_return","sma_10","sma_50"]
 
-# Recommendation + explanation
-recommendation, reasons = generate_recommendation(latest["close"], pred_price, info.get("trailingPE"), 0.1, 0.1)
+X = latest[FEATURES].values.reshape(1,-1)
+reg_model = joblib.load(os.path.join(MODEL_PATH, stocks[stock_name].replace(".csv", "_rf_regression.pkl")))
+
+try:
+    pred_price = reg_model.predict(X)[0]
+except ValueError as e:
+    st.error(f"Prediction failed: {e}")
+    pred_price = latest["close"]  # fallback to last close
+
+# ================= 5–7 DAY FUTURE PREDICTION =================
+future_prices = [latest["close"]]
+for _ in range(6):  # next 6 days
+    X_future = df[FEATURES].iloc[-1].values.reshape(1,-1)
+    next_price = reg_model.predict(X_future)[0]
+    future_prices.append(next_price)
+    # append to df for rolling features if needed
+    temp = df.iloc[-1].copy()
+    temp["close"] = next_price
+    df = pd.concat([df, pd.DataFrame([temp])], ignore_index=True)
+
+# ================= DASHBOARD CHARTS =================
+import plotly.graph_objects as go
+st.subheader("📈 Price Chart with SMA & RSI")
+
+fig = go.Figure()
+# Candlestick
+fig.add_trace(go.Candlestick(
+    x=df["date"], open=df["open"], high=df["high"], low=df["low"], close=df["close"],
+    name="Price", increasing_line_color="#0061FF", decreasing_line_color="#FF4B4B"
+))
+# SMA lines
+fig.add_trace(go.Scatter(x=df["date"], y=df["sma_20"], mode="lines", line=dict(color="#FFA500"), name="SMA 20"))
+fig.add_trace(go.Scatter(x=df["date"], y=df["sma_50"], mode="lines", line=dict(color="#00CFFF"), name="SMA 50"))
+fig.update_layout(height=400, xaxis_rangeslider_visible=False, plot_bgcolor="white", paper_bgcolor="rgba(0,0,0,0)")
+st.plotly_chart(fig, use_container_width=True)
+
+# RSI Chart
+st.subheader("📊 RSI (14)")
+fig_rsi = go.Figure()
+fig_rsi.add_trace(go.Scatter(x=df["date"], y=df["rsi_14"], mode="lines", line=dict(color="#6F42C1"), name="RSI 14"))
+fig_rsi.update_layout(height=200, plot_bgcolor="white", paper_bgcolor="rgba(0,0,0,0)")
+st.plotly_chart(fig_rsi, use_container_width=True)
+
+# ================= USER LEARNING =================
+st.subheader("🎓 Learning Mode: Metrics Explanation")
+st.markdown(f"""
+- **Current Price:** ₹ {latest['close']:.2f}  
+- **Predicted Next Close:** ₹ {pred_price:.2f}  
+- **Expected % Change:** {((pred_price - latest['close'])/latest['close']*100):.2f}%  
+
+**Indicators:**
+- **SMA 20:** Average price over last 20 days.  
+- **SMA 50:** Average price over last 50 days.  
+- **RSI 14:** Measures overbought (>70) / oversold (<30) conditions.  
+""")
+
+# ================= 5–7 DAY FORECAST =================
+st.subheader("🔮 5–7 Day Price Forecast")
+for i, price in enumerate(future_prices[1:], 1):
+    st.write(f"Day {i}: ₹ {price:.2f}")
 
 # ================= DASHBOARD UI =================
 
