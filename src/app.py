@@ -65,6 +65,8 @@ stocks = {
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_PATH = os.path.join(BASE_DIR, "data_features")  # CSVs
 MODEL_PATH = os.path.join(BASE_DIR, "src", "models") # .pkl files
+reg_model_filename = f"{stock_name}.NS_rf_regression.pkl"
+reg_model_path = os.path.join(MODEL_PATH, reg_model_filename)
 
 # ================= SIDEBAR STOCK SELECT =================
 stock_name = st.sidebar.selectbox("Select Stock", list(stocks.keys()))
