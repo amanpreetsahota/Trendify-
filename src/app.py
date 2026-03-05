@@ -194,7 +194,7 @@ latest = df.iloc[-1]
 
 # ================= PREDICTION =================
 # Features used in training (must match your trained model)
-FEATURES = ["open","high","low","close","volume","daily_return","sma_10","sma_50"]
+FEATURES = ["open","high","low","close","volume","daily_return","sma_20","sma_50","rsi_14"]
 
 X = latest[FEATURES].values.reshape(1,-1)
 reg_model = joblib.load(os.path.join(MODEL_PATH, stocks[stock_name].replace(".csv", "_rf_regression.pkl")))
@@ -207,14 +207,22 @@ except ValueError as e:
 
 # ================= 5–7 DAY FUTURE PREDICTION =================
 future_prices = [latest["close"]]
+last_row = latest.copy()
+
 for _ in range(6):  # next 6 days
-    X_future = df[FEATURES].iloc[-1].values.reshape(1,-1)
+    X_future = last_row[FEATURES].values.reshape(1,-1)
     next_price = reg_model.predict(X_future)[0]
     future_prices.append(next_price)
-    # append to df for rolling features if needed
-    temp = df.iloc[-1].copy()
-    temp["close"] = next_price
-    df = pd.concat([df, pd.DataFrame([temp])], ignore_index=True)
+
+    # Update last_row for next iteration
+    last_row["open"] = last_row["close"]
+    last_row["high"] = next_price*1.01
+    last_row["low"] = next_price*0.99
+    last_row["close"] = next_price
+    last_row["daily_return"] = 0
+    last_row["sma_20"] = (last_row["sma_20"]*19 + next_price)/20
+    last_row["sma_50"] = (last_row["sma_50"]*49 + next_price)/50
+    last_row["rsi_14"] = last_row["rsi_14"]  # optional, or recalc
 
 # ================= DASHBOARD CHARTS =================
 import plotly.graph_objects as go
@@ -235,7 +243,7 @@ st.plotly_chart(fig, use_container_width=True)
 # RSI Chart
 st.subheader("📊 RSI (14)")
 fig_rsi = go.Figure()
-fig_rsi.add_trace(go.Scatter(x=df["date"], y=df["rsi_14"], mode="lines", line=dict(color="#6F42C1"), name="RSI 14"))
+fig_rsi.add_trace(go.Scatter(x=df["date"], y=df["rsi_14"], mode='lines', line=dict(color='#6F42C1'), name="RSI 14"))
 fig_rsi.update_layout(height=200, plot_bgcolor="white", paper_bgcolor="rgba(0,0,0,0)")
 st.plotly_chart(fig_rsi, use_container_width=True)
 
@@ -249,7 +257,8 @@ st.markdown(f"""
 **Indicators:**
 - **SMA 20:** Average price over last 20 days.  
 - **SMA 50:** Average price over last 50 days.  
-- **RSI 14:** Measures overbought (>70) / oversold (<30) conditions.  
+- **RSI 14:** Measures overbought (>70) / oversold (<30) conditions.
+**Predicted Price:** Next day expected closing price by AI model.  
 """)
 
 # ================= 5–7 DAY FORECAST =================
