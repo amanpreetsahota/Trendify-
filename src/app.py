@@ -161,7 +161,7 @@ health_score = stock_health_score(info)
 
 # ================= PREDICTION & RECOMMENDATION =================
 reg_model = joblib.load(os.path.join(MODEL_PATH, stocks[stock_name].replace(".csv", "_rf_regression.pkl")))
-X = latest[["open","high","low","close","volume","daily_return","sma_10","sma_50","sma_200"]].values.reshape(1,-1)
+X = latest[["open","high","low","close","volume","daily_return","sma_10","sma_50"]].values.reshape(1,-1)
 pred_price = reg_model.predict(X)[0]
 recommendation, reasons = generate_recommendation(latest["close"], pred_price, info.get("trailingPE"), revenue_growth, profit_growth)
 
