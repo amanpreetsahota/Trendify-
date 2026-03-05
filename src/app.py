@@ -16,6 +16,13 @@ from prediction import show_price_prediction
 from recommendation import generate_recommendation
 from portfolio import show_portfolio
 
+# Fetch stock info
+ticker = yf.Ticker(stock_name + ".NS")
+info = ticker.info  # dictionary with fundamentals like marketCap, PE ratio, etc.
+
+# Pass to show_fundamentals
+show_fundamentals(stock_name, info, latest, st.session_state.learning_mode)
+
 # ================= INDICATORS FUNCTIONS =================
 def calculate_indicators(df):
     # SMA
