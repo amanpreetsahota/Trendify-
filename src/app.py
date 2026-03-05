@@ -174,7 +174,7 @@ info = ticker.info
 
 # ================= ML PREDICTION =================
 FEATURES = ["open","high","low","close","volume","daily_return","sma_20","sma_50"]
-reg_model_path = os.path.join(MODEL_PATH, stocks[stock_name].replace(".csv","_rf_regression.pkl"))
+reg_model_path = os.path.join(MODEL_PATH, stocks[stock_name].replace(".NS.csv","_rf_regression.pkl"))
 reg_model = joblib.load(reg_model_path)
 
 X = latest[FEATURES].values.reshape(1,-1)
