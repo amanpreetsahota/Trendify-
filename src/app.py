@@ -6,7 +6,6 @@ import plotly.graph_objects as go
 import os
 import yfinance as yf
 import requests
-from yfinance import YFRateLimitError
 from datetime import datetime, timedelta
 
 # Import your custom modules
@@ -210,7 +209,27 @@ with col_b:
     st.markdown(f"<p style='margin-top:15px; color:#64748B;'>{reasons[0] if reasons else ''}</p>", unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-# 4. News Section
+# ================= NEWS FETCH =================
+def get_filtered_financial_news(stock_name):
+    api_key = os.getenv("FINNHUB_API_KEY")  # Make sure you set FINNHUB_API_KEY
+    if not api_key:
+        return []
+    url = f"https://finnhub.io/api/v1/news?category=general&token={api_key}"
+    try:
+        response = requests.get(url)
+        data = response.json()
+        if not isinstance(data, list):
+            return []
+        filtered_news = [
+            article for article in data
+            if stock_name.lower() in article.get("headline", "").lower() 
+            or stock_name.lower() in article.get("summary", "").lower()
+        ]
+        return filtered_news[:5] if filtered_news else data[:5]
+    except:
+        return []
+
+# Call news after function definition
 st.subheader("Latest News")
 news = get_filtered_financial_news(stock_name)
 for article in news[:3]:
