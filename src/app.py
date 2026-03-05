@@ -65,12 +65,14 @@ stocks = {
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_PATH = os.path.join(BASE_DIR, "data_features")  # CSVs
 MODEL_PATH = os.path.join(BASE_DIR, "src", "models") # .pkl files
-reg_model_filename = f"{stock_name}.NS_rf_regression.pkl"
-reg_model_path = os.path.join(MODEL_PATH, reg_model_filename)
 
 # ================= SIDEBAR STOCK SELECT =================
 stock_name = st.sidebar.selectbox("Select Stock", list(stocks.keys()))
 use_live = st.sidebar.toggle("Use Live Market Data", value=True)
+
+# ----------------- MODEL PATHS -----------------
+reg_model_filename = f"{stock_name}.NS_rf_regression.pkl"
+reg_model_path = os.path.join(MODEL_PATH, reg_model_filename)
 
 # ================= SESSION STATE =================
 if "users" not in st.session_state:
@@ -162,10 +164,6 @@ def calculate_indicators(df):
     rs = avg_gain / (avg_loss + 1e-6)
     df["rsi"] = 100 - (100 / (1 + rs))
     return df
-
-df = get_processed_data(stock_name, stocks[stock_name], use_live)
-df = calculate_indicators(df)
-latest = df.iloc[-1]
 
 # ================= FUNDAMENTALS =================
 ticker = yf.Ticker(stock_name + ".NS")
