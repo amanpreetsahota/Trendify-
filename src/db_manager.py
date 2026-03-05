@@ -45,10 +45,10 @@ def get_users():
     conn.close()
     return {name: (user_id, password) for user_id, name, password in rows}
 
-def add_user(user_id, username, password):
+def add_user(username, password):
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
-    c.execute("INSERT INTO users (id, name, password) VALUES (?, ?, ?)", (user_id, username, password))
+    c.execute("INSERT INTO users (name, password) VALUES (?, ?)", (username, password))
     conn.commit()
     conn.close()
 
