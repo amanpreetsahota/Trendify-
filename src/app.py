@@ -179,12 +179,18 @@ reg_model = joblib.load(reg_model_path)
 
 # ================= ML PREDICTION =================
 FEATURES = ["open","high","low","close","volume","daily_return","sma_20","sma_50"]
-X = latest[FEATURES].values.reshape(1,-1)
-try:
-    pred_price = reg_model.predict(X)[0]
-except Exception:
-    pred_price = latest["close"]
 
+# Fill missing columns if they are absent
+for col in FEATURES:
+    if col not in df.columns:
+        df[col] = 0  # or df[col] = df["close"] if makes sense
+latest = df.iloc[-1]
+
+# Ensure all FEATURES exist in latest
+X = latest[FEATURES].values.reshape(1, -1)
+missing_cols = [c for c in FEATURES if c not in df.columns]
+if missing_cols:
+    st.warning(f"Missing columns in CSV/live data: {missing_cols}")
 # ================= TOP HEADER =================
 change_pct = ((pred_price - latest["close"])/latest["close"])*100
 st.markdown(f"""
