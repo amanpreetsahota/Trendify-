@@ -16,10 +16,29 @@ from recommendation import generate_recommendation
 from portfolio import show_portfolio
 from prediction import show_price_prediction
 
-#  PAGE CONFIG 
-st.set_page_config(page_title="Trendify – Track Trends. Predict Smarter.",layout="wide",initial_sidebar_state="expanded")
+def show_learning_mode():
+    st.subheader("📝 Learning Mode")
+    st.markdown("""
+    **Key Metrics Explained:**
+    - **P/E Ratio:** Price to Earnings ratio. Lower usually means undervalued.
+    - **EPS:** Earnings Per Share. Higher is better.
+    - **SMA 20 / 50:** Short-term and mid-term trends.
+    - **RSI:** Relative Strength Index. Over 70 = overbought, below 30 = oversold.
 
-#  CSS 
+    **Investment Recommendation:**
+    - If stock health is **Strong** and RSI < 70 → Potential Buy
+    - If stock health is **Moderate** → Hold / Watch
+    - If stock health is **Weak** → Avoid / Sell
+    """)
+
+# ================= PAGE CONFIG =================
+st.set_page_config(
+    page_title="Trendify – Track Trends. Predict Smarter.",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# ================= CSS =================
 st.markdown("""
 <style>
 html, body, [class*="css"] {font-family: 'Inter', sans-serif; background-color: #F8FAFC;}
@@ -33,99 +52,7 @@ html, body, [class*="css"] {font-family: 'Inter', sans-serif; background-color: 
 </style>
 """, unsafe_allow_html=True)
 
-# ================= PATHS =================
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA_PATH = os.path.join(BASE_DIR, "data_features")
-MODEL_PATH = os.path.join(BASE_DIR, "models")
-
-# ================= SESSION STATE =================
-if "users" not in st.session_state:
-    st.session_state.users = get_users()
-
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
-
-if "username" not in st.session_state:
-    st.session_state.username = ""
-
-if "user_id" not in st.session_state:
-    st.session_state.user_id = None
-
-if "learning_mode" not in st.session_state:
-    st.session_state.learning_mode = False
-
-
-# ================= AUTH UI =================
-def login_signup_ui():
-
-    st.markdown("<h1 style='text-align:center;'>Trendify</h1>", unsafe_allow_html=True)
-
-    tab1, tab2 = st.tabs(["Login", "Signup"])
-
-    # -------- LOGIN --------
-    with tab1:
-        login_user = st.text_input("Username")
-        login_pass = st.text_input("Password", type="password")
-
-        if st.button("Login", use_container_width=True):
-
-            users = st.session_state.users
-
-            if login_user in users and users[login_user][1] == login_pass:
-
-                st.session_state.logged_in = True
-                st.session_state.username = login_user
-                st.session_state.user_id = users[login_user][0]
-
-                st.success("Login successful")
-                st.rerun()
-
-            else:
-                st.error("Invalid username or password")
-
-    # -------- SIGNUP --------
-    with tab2:
-
-        new_user = st.text_input("Create Username")
-        new_pass = st.text_input("Create Password", type="password")
-
-        if st.button("Create Account", use_container_width=True):
-
-            users = st.session_state.users
-
-            if new_user in users:
-                st.error("Username already exists")
-
-            elif new_user == "" or new_pass == "":
-                st.warning("Please fill all fields")
-
-            else:
-                add_user(new_user, new_pass)
-                st.session_state.users = get_users()
-
-                st.success("Account created! Please login.")
-
-
-# Show login if not logged in
-if not st.session_state.logged_in:
-    login_signup_ui()
-    st.stop()
-
-
-# ================= SIDEBAR =================
-with st.sidebar:
-
-    st.write(f"Welcome **{st.session_state.username}**")
-
-    if st.button("Logout"):
-
-        st.session_state.logged_in = False
-        st.session_state.username = ""
-        st.session_state.user_id = None
-
-        st.rerun()
-# ================= STOCK SELECTION =================
-
+# ================= STOCKS =================
 stocks = {
     "TCS": "TCS.csv",
     "INFY": "INFY.csv",
@@ -134,20 +61,90 @@ stocks = {
     "ICICIBANK": "ICICIBANK.csv"
 }
 
-stock_name = st.sidebar.selectbox("Select Stock", list(stocks.keys()))
+# ================= PATHS =================
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_PATH = os.path.join(BASE_DIR, "data_features")  # CSVs
+MODEL_PATH = os.path.join(BASE_DIR, "src", "models") # .pkl files
 
+# ================= SIDEBAR STOCK SELECT =================
+stock_name = st.sidebar.selectbox("Select Stock", list(stocks.keys()))
 use_live = st.sidebar.toggle("Use Live Market Data", value=True)
+
+# ================= SESSION STATE =================
+if "users" not in st.session_state:
+    st.session_state.users = get_users()
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+if "username" not in st.session_state:
+    st.session_state.username = ""
+if "user_id" not in st.session_state:
+    st.session_state.user_id = None
+if "learning_mode" not in st.session_state:
+    st.session_state.learning_mode = False
+
+# ================= AUTH UI =================
+def login_signup_ui():
+    st.markdown("<h1 style='text-align:center;'>Trendify</h1>", unsafe_allow_html=True)
+    tab1, tab2 = st.tabs(["Login", "Signup"])
+    
+    # Login
+    with tab1:
+        login_user = st.text_input("Username")
+        login_pass = st.text_input("Password", type="password")
+        if st.button("Login", use_container_width=True):
+            users = st.session_state.users
+            if login_user in users and users[login_user][1] == login_pass:
+                st.session_state.logged_in = True
+                st.session_state.username = login_user
+                st.session_state.user_id = users[login_user][0]
+                st.success("Login successful")
+                st.rerun()
+            else:
+                st.error("Invalid username or password")
+    
+    # Signup
+    with tab2:
+        new_user = st.text_input("Create Username")
+        new_pass = st.text_input("Create Password", type="password")
+        if st.button("Create Account", use_container_width=True):
+            users = st.session_state.users
+            if new_user in users:
+                st.error("Username already exists")
+            elif new_user == "" or new_pass == "":
+                st.warning("Please fill all fields")
+            else:
+                add_user(new_user, new_pass)
+                st.session_state.users = get_users()
+                st.success("Account created! Please login.")
+
+if not st.session_state.logged_in:
+    login_signup_ui()
+    st.stop()
+
+# ================= SIDEBAR =================
+with st.sidebar:
+    st.write(f"Welcome **{st.session_state.username}**")
+    if st.button("Logout"):
+        st.session_state.logged_in = False
+        st.session_state.username = ""
+        st.session_state.user_id = None
+        st.rerun()
 
 # ================= DATA FETCHING =================
 @st.cache_data(ttl=300)
 def get_processed_data(symbol, file_name, live=False):
     if live:
         df = yf.download(symbol + ".NS", period="6mo", interval="1d", progress=False)
-        if isinstance(df.columns, pd.MultiIndex): df.columns = df.columns.get_level_values(0)
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = df.columns.get_level_values(0)
         df.reset_index(inplace=True)
         df.columns = [col.lower() for col in df.columns]
     else:
-        df = pd.read_csv(os.path.join(DATA_PATH, file_name))
+        csv_path = os.path.join(DATA_PATH, file_name)
+        if not os.path.exists(csv_path):
+            st.error(f"CSV file not found: {csv_path}")
+            st.stop()
+        df = pd.read_csv(csv_path)
         df["date"] = pd.to_datetime(df["date"])
     df["daily_return"] = df["close"].pct_change()
     return df.dropna()
@@ -172,11 +169,16 @@ latest = df.iloc[-1]
 ticker = yf.Ticker(stock_name + ".NS")
 info = ticker.info
 
-# ================= ML PREDICTION =================
-FEATURES = ["open","high","low","close","volume","daily_return","sma_20","sma_50"]
-reg_model_path = os.path.join(MODEL_PATH, stocks[stock_name].replace(".NS.csv","_rf_regression.pkl"))
+# ================= LOAD MODEL =================
+reg_model_filename = f"{stock_name}.NS_rf_regression.pkl"
+reg_model_path = os.path.join(MODEL_PATH, reg_model_filename)
+if not os.path.exists(reg_model_path):
+    st.error(f"Model file not found: {reg_model_path}")
+    st.stop()
 reg_model = joblib.load(reg_model_path)
 
+# ================= ML PREDICTION =================
+FEATURES = ["open","high","low","close","volume","daily_return","sma_20","sma_50"]
 X = latest[FEATURES].values.reshape(1,-1)
 try:
     pred_price = reg_model.predict(X)[0]
@@ -205,7 +207,9 @@ with tab1:
 with tab2:
     st.subheader(f"📈 Price Chart with SMA & RSI • {stock_name}")
     fig = go.Figure()
-    fig.add_trace(go.Candlestick(x=df["date"], open=df["open"], high=df["high"], low=df["low"], close=df["close"], increasing_line_color="#0061FF", decreasing_line_color="#FF4B4B", name="Price"))
+    fig.add_trace(go.Candlestick(
+        x=df["date"], open=df["open"], high=df["high"], low=df["low"], close=df["close"],
+        increasing_line_color="#0061FF", decreasing_line_color="#FF4B4B", name="Price"))
     fig.add_trace(go.Scatter(x=df["date"], y=df["sma_20"], mode="lines", line=dict(color="#FFA500"), name="SMA 20"))
     fig.add_trace(go.Scatter(x=df["date"], y=df["sma_50"], mode="lines", line=dict(color="#00CFFF"), name="SMA 50"))
     fig.update_layout(height=400, xaxis_rangeslider_visible=False, plot_bgcolor="white", paper_bgcolor="rgba(0,0,0,0)")
@@ -218,7 +222,7 @@ with tab2:
     fig_rsi.add_hline(y=30, line_dash="dash", line_color="green", annotation_text="Oversold", annotation_position="bottom right")
     fig_rsi.update_layout(height=200, plot_bgcolor="white", paper_bgcolor="rgba(0,0,0,0)")
     st.plotly_chart(fig_rsi, use_container_width=True)
-    
+
     st.subheader("🔮 5–7 Day Price Forecast")
     future_prices = [latest["close"]]
     last_row = latest.copy()
@@ -229,7 +233,6 @@ with tab2:
         except:
             next_price = last_row["close"]
         future_prices.append(next_price)
-        # Update rolling features
         last_row["open"] = last_row["close"]
         last_row["high"] = next_price*1.01
         last_row["low"] = next_price*0.99
@@ -241,9 +244,15 @@ with tab2:
     fig_future.add_trace(go.Scatter(x=future_dates, y=future_prices[1:], mode="lines+markers", name="Predicted Price", line=dict(color="#22C55E")))
     fig_future.update_layout(height=300, plot_bgcolor="white", paper_bgcolor="rgba(0,0,0,0)")
     st.plotly_chart(fig_future, use_container_width=True)
-    
+
 with tab3:
-    show_fundamentals(stock_name, info, latest, st.session_state.learning_mode)
+    show_fundamentals(stock_name)
+
+    # ----------------- Investment Recommendation -----------------
+    if st.session_state.learning_mode:
+        st.subheader("📌 Investment Recommendation")
+        rec_text = generate_recommendation(stock_name)  # make sure this function exists
+        st.info(rec_text)
 
 with tab4:
     st.subheader("Latest News")
@@ -257,7 +266,8 @@ with tab4:
             if not isinstance(data, list): return []
             filtered_news = [a for a in data if stock_name.lower() in a.get("headline","").lower() or stock_name.lower() in a.get("summary","").lower()]
             return filtered_news[:5] if filtered_news else data[:5]
-        except: return []
+        except:
+            return []
 
     news = get_filtered_financial_news(stock_name)
     for article in news[:3]:
