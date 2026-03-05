@@ -125,10 +125,13 @@ def show_portfolio():
         st.subheader("💹 Profit/Loss per Stock")
         fig2, ax2 = plt.subplots()
         colors = ['green' if val>=0 else 'red' for val in pl_data.values()]
-        ax2.bar(pl_data.keys(), pl_data.values(), color=colors)
+        bars = ax2.bar(pl_data.keys(), pl_data.values(), color=colors)
         ax2.set_ylabel("Profit / Loss (₹)")
+        ax2.set_xticks(range(len(pl_data)))
         ax2.set_xticklabels(pl_data.keys(), rotation=45)
         st.pyplot(fig2)
+        for i, val in enumerate(pl_data.values()):
+            ax2.text(i, val, f"{val:.0f}", ha='center', va='bottom' if val>=0 else 'top')
 
     else:
         st.info("Portfolio empty.")
