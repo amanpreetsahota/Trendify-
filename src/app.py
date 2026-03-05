@@ -16,6 +16,30 @@ from prediction import show_price_prediction
 from recommendation import generate_recommendation
 from portfolio import show_portfolio
 
+# ================= NEWS FETCH =================
+def get_filtered_financial_news(stock_name):
+    api_key = os.getenv("FINNHUB_API_KEY")  # Make sure you set your API key in environment
+    if not api_key:
+        st.warning("⚠️ No FINNHUB_API_KEY found. News cannot be fetched.")
+        return []
+    
+    url = f"https://finnhub.io/api/v1/news?category=general&token={api_key}"
+    try:
+        response = requests.get(url)
+        data = response.json()
+        if not isinstance(data, list):
+            return []
+        # Filter by stock name in headline or summary
+        filtered_news = [
+            article for article in data
+            if stock_name.lower() in article.get("headline", "").lower() 
+            or stock_name.lower() in article.get("summary", "").lower()
+        ]
+        return filtered_news[:5] if filtered_news else data[:5]
+    except Exception as e:
+        st.error(f"Failed to fetch news: {e}")
+        return []
+
 # ================= PAGE CONFIG =================
 st.set_page_config(
     page_title="Trendify – Track Trends. Predict Smarter.",
@@ -214,35 +238,23 @@ with col_b:
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ================= NEWS =================
-def get_filtered_financial_news(stock_name):
-    api_key = os.getenv("FINNHUB_API_KEY")
-    if not api_key: return []
-    url = f"https://finnhub.io/api/v1/news?category=general&token={api_key}"
-    try:
-        response = requests.get(url)
-        data = response.json()
-        if not isinstance(data,list): return []
-        filtered_news = [
-            a for a in data
-            if stock_name.lower() in a.get("headline","").lower() or stock_name.lower() in a.get("summary","").lower()
-        ]
-        return filtered_news[:5] if filtered_news else data[:5]
-    except: return []
-
+# 4. News Section
 st.subheader("Latest News")
 news = get_filtered_financial_news(stock_name)
-for article in news[:3]:
-    st.markdown(f"""
-    <div class="news-row">
-        <div style="background:#EFF6FF; padding:12px; border-radius:15px; margin-right:15px;">📰</div>
-        <div style="flex-grow:1;">
-            <h4 style="margin:0; font-size:15px; color:#1E293B;">{article.get('headline','')}</h4>
-            <p style="margin:0; font-size:12px; color:#64748B;">Source: Market Intel</p>
-        </div>
-        <a href="{article.get('url','#')}" target="_blank" style="text-decoration:none; color:#0061FF; font-weight:700;">VIEW</a>
-    </div>
-    """, unsafe_allow_html=True)
-
+if not news:
+    st.info("No news available for this stock.")
+else:
+    for article in news[:3]:
+        st.markdown(f"""
+            <div class="news-row">
+                <div style="background:#EFF6FF; padding:12px; border-radius:15px; margin-right:15px;">📰</div>
+                <div style="flex-grow:1;">
+                    <h4 style="margin:0; font-size:15px; color:#1E293B;">{article.get('headline','')}</h4>
+                    <p style="margin:0; font-size:12px; color:#64748B;">Source: {article.get('source', 'Market Intel')}</p>
+                </div>
+                <a href="{article.get('url','#')}" target="_blank" style="text-decoration:none; color:#0061FF; font-weight:700;">VIEW</a>
+            </div>
+        """, unsafe_allow_html=True)
 # ================= PORTFOLIO =================
 st.markdown("---")
 show_portfolio()
