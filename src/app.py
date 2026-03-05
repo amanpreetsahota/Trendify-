@@ -39,56 +39,87 @@ DATA_PATH = os.path.join(BASE_DIR, "data_features")
 MODEL_PATH = os.path.join(BASE_DIR, "models")
 
 # ================= SESSION STATE =================
-if "users" not in st.session_state: st.session_state.users = get_users()
-if "logged_in" not in st.session_state: st.session_state.logged_in = False
-if "username" not in st.session_state: st.session_state.username = ""
-if "user_id" not in st.session_state: st.session_state.user_id = None
-if "learning_mode" not in st.session_state: st.session_state.learning_mode = False
+if "users" not in st.session_state:
+    st.session_state.users = get_users()
+
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+
+if "username" not in st.session_state:
+    st.session_state.username = ""
+
+if "user_id" not in st.session_state:
+    st.session_state.user_id = None
+
 
 # ================= AUTH UI =================
 def login_signup_ui():
-    st.markdown("<h1 style='text-align:center; color:#1E293B;'>Trendify</h1>", unsafe_allow_html=True)
+
+    st.markdown("<h1 style='text-align:center;'>Trendify</h1>", unsafe_allow_html=True)
 
     tab1, tab2 = st.tabs(["Login", "Signup"])
 
-    # LOGIN
+    # -------- LOGIN --------
     with tab1:
-        u = st.text_input("Username")
-        p = st.text_input("Password", type="password")
+        login_user = st.text_input("Username")
+        login_pass = st.text_input("Password", type="password")
 
-        if st.button("Sign In", use_container_width=True):
+        if st.button("Login", use_container_width=True):
+
             users = st.session_state.users
-            if u in users and users[u][1] == p:
-                st.session_state.logged_in = True
-                st.session_state.username = u
-                st.session_state.user_id = users[u][0]
-                st.rerun()
-            else:
-                st.error("Invalid credentials")
 
-    # SIGNUP
+            if login_user in users and users[login_user][1] == login_pass:
+
+                st.session_state.logged_in = True
+                st.session_state.username = login_user
+                st.session_state.user_id = users[login_user][0]
+
+                st.success("Login successful")
+                st.rerun()
+
+            else:
+                st.error("Invalid username or password")
+
+    # -------- SIGNUP --------
     with tab2:
+
         new_user = st.text_input("Create Username")
         new_pass = st.text_input("Create Password", type="password")
 
         if st.button("Create Account", use_container_width=True):
+
             users = st.session_state.users
+
             if new_user in users:
                 st.error("Username already exists")
+
+            elif new_user == "" or new_pass == "":
+                st.warning("Please fill all fields")
+
             else:
-                user_id = add_user(new_user, new_pass)
-                st.success("Account created successfully! Please login.")
+                add_user(new_user, new_pass)
                 st.session_state.users = get_users()
+
+                st.success("Account created! Please login.")
+
+
+# Show login if not logged in
+if not st.session_state.logged_in:
+    login_signup_ui()
+    st.stop()
+
 
 # ================= SIDEBAR =================
 with st.sidebar:
-    st.markdown(f"### Hello, **{st.session_state.username}** 👋")
-    stocks = {"TCS": "TCS.NS.csv", "INFY": "INFY.NS.csv", "RELIANCE": "RELIANCE.NS.csv", "HDFCBANK": "HDFCBANK.NS.csv"}
-    stock_name = st.selectbox("Select Asset", list(stocks.keys()))
-    st.session_state.learning_mode = st.toggle("🎓 Learning Mode", st.session_state.learning_mode)
-    use_live = st.toggle("🔴 Live Market", False)
-    if st.button("Log Out", use_container_width=True):
+
+    st.write(f"Welcome **{st.session_state.username}**")
+
+    if st.button("Logout"):
+
         st.session_state.logged_in = False
+        st.session_state.username = ""
+        st.session_state.user_id = None
+
         st.rerun()
 
 # ================= DATA FETCHING =================
