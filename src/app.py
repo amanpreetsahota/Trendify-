@@ -135,18 +135,28 @@ with st.sidebar:
         st.rerun()
 
 # ================= DATA FETCHING =================
-df = None
-try:
-    df = get_processed_data(stock_name, stocks[stock_name], use_live)
-    df = calculate_indicators(df)
-except Exception as e:
-    st.error(f"Failed to load stock data: {e}")
-    st.stop()
+# ================= DATA PROCESSING FUNCTIONS =================
+@st.cache_data(ttl=300)
+def get_processed_data(symbol, file_name, live=False):
+    import yfinance as yf
+    import os
+    import pandas as pd
 
-# Safety check: ensure df exists and has data
-if df is None or df.empty:
-    st.error(f"No data available for {stock_name}")
-    st.stop()
+    if live:
+        df = yf.download(symbol + ".NS", period="6mo", interval="1d", progress=False)
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = df.columns.get_level_values(0)
+        df.reset_index(inplace=True)
+        df.columns = [col.lower() for col in df.columns]
+    else:
+        csv_path = os.path.join(DATA_PATH, file_name)
+        if not os.path.exists(csv_path):
+            st.error(f"CSV file not found: {csv_path}")
+            st.stop()
+        df = pd.read_csv(csv_path)
+        df["date"] = pd.to_datetime(df["date"])
+    df["daily_return"] = df["close"].pct_change()
+    return df.dropna()
 
 def calculate_indicators(df):
     df["sma_20"] = df["close"].rolling(20).mean()
@@ -159,6 +169,20 @@ def calculate_indicators(df):
     rs = avg_gain / (avg_loss + 1e-6)
     df["rsi"] = 100 - (100 / (1 + rs))
     return df
+
+# ================= DATA FETCH =================
+df = None
+try:
+    df = get_processed_data(stock_name, stocks[stock_name], use_live)
+    df = calculate_indicators(df)
+except Exception as e:
+    st.error(f"Failed to load stock data: {e}")
+    st.stop()
+
+# Safety check
+if df is None or df.empty:
+    st.error(f"No data available for {stock_name}")
+    st.stop()
 # ================= FUNDAMENTALS =================
 ticker = yf.Ticker(stock_name + ".NS")
 info = ticker.info
