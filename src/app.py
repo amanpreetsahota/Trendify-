@@ -135,23 +135,18 @@ with st.sidebar:
         st.rerun()
 
 # ================= DATA FETCHING =================
-@st.cache_data(ttl=300)
-def get_processed_data(symbol, file_name, live=False):
-    if live:
-        df = yf.download(symbol + ".NS", period="6mo", interval="1d", progress=False)
-        if isinstance(df.columns, pd.MultiIndex):
-            df.columns = df.columns.get_level_values(0)
-        df.reset_index(inplace=True)
-        df.columns = [col.lower() for col in df.columns]
-    else:
-        csv_path = os.path.join(DATA_PATH, file_name)
-        if not os.path.exists(csv_path):
-            st.error(f"CSV file not found: {csv_path}")
-            st.stop()
-        df = pd.read_csv(csv_path)
-        df["date"] = pd.to_datetime(df["date"])
-    df["daily_return"] = df["close"].pct_change()
-    return df.dropna()
+df = None
+try:
+    df = get_processed_data(stock_name, stocks[stock_name], use_live)
+    df = calculate_indicators(df)
+except Exception as e:
+    st.error(f"Failed to load stock data: {e}")
+    st.stop()
+
+# Safety check: ensure df exists and has data
+if df is None or df.empty:
+    st.error(f"No data available for {stock_name}")
+    st.stop()
 
 def calculate_indicators(df):
     df["sma_20"] = df["close"].rolling(20).mean()
@@ -164,7 +159,6 @@ def calculate_indicators(df):
     rs = avg_gain / (avg_loss + 1e-6)
     df["rsi"] = 100 - (100 / (1 + rs))
     return df
-
 # ================= FUNDAMENTALS =================
 ticker = yf.Ticker(stock_name + ".NS")
 info = ticker.info
@@ -180,17 +174,33 @@ reg_model = joblib.load(reg_model_path)
 # ================= ML PREDICTION =================
 FEATURES = ["open","high","low","close","volume","daily_return","sma_20","sma_50"]
 
-# Fill missing columns if they are absent
+# Fill missing columns
 for col in FEATURES:
     if col not in df.columns:
-        df[col] = 0  # or df[col] = df["close"] if makes sense
+        if col in ["daily_return", "sma_20", "sma_50"]:
+            df[col] = 0.0
+        else:
+            df[col] = df["close"]
+
 latest = df.iloc[-1]
 
-# Ensure all FEATURES exist in latest
-X = latest[FEATURES].values.reshape(1, -1)
-missing_cols = [c for c in FEATURES if c not in df.columns]
-if missing_cols:
-    st.warning(f"Missing columns in CSV/live data: {missing_cols}")
+# ================= LOAD MODEL =================
+reg_model_filename = f"{stock_name}.NS_rf_regression.pkl"
+reg_model_path = os.path.join(MODEL_PATH, reg_model_filename)
+if not os.path.exists(reg_model_path):
+    st.error(f"Model file not found: {reg_model_path}")
+    st.stop()
+
+reg_model = joblib.load(reg_model_path)
+
+# ================= ML PREDICTION =================
+try:
+    X = latest[FEATURES].values.reshape(1, -1)
+    pred_price = reg_model.predict(X)[0]
+except Exception as e:
+    st.warning(f"Prediction failed, using latest close: {e}")
+    pred_price = latest["close"]
+
 # ================= TOP HEADER =================
 change_pct = ((pred_price - latest["close"])/latest["close"])*100
 st.markdown(f"""
