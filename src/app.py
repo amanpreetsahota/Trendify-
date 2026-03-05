@@ -16,6 +16,23 @@ from prediction import show_price_prediction
 from recommendation import generate_recommendation
 from portfolio import show_portfolio
 
+# ================= INDICATORS FUNCTIONS =================
+def calculate_indicators(df):
+    # SMA
+    df["sma_20"] = df["close"].rolling(20).mean()
+    df["sma_50"] = df["close"].rolling(50).mean()
+    
+    # RSI
+    delta = df["close"].diff()
+    gain = delta.clip(lower=0)
+    loss = -delta.clip(upper=0)
+    avg_gain = gain.rolling(14).mean()
+    avg_loss = loss.rolling(14).mean()
+    rs = avg_gain / avg_loss
+    df["rsi"] = 100 - (100 / (1 + rs))
+    
+    return df
+
 # ================= PAGE CONFIG =================
 st.set_page_config(
     page_title="Trendify – Track Trends. Predict Smarter.",
@@ -135,11 +152,14 @@ with st.sidebar:
         st.rerun()
 
 # ================= DATA FETCHING =================
+# ================= DATA FETCHING & INDICATORS =================
 @st.cache_data(ttl=300)
 def get_processed_data(symbol, file_name, live=False):
+    """Fetch stock data from CSV or Yahoo Finance (live)."""
     if live:
         df = yf.download(symbol + ".NS", period="6mo", interval="1d", progress=False)
-        if isinstance(df.columns, pd.MultiIndex): df.columns = df.columns.get_level_values(0)
+        if isinstance(df.columns, pd.MultiIndex): 
+            df.columns = df.columns.get_level_values(0)
         df.reset_index(inplace=True)
         df.columns = [col.lower() for col in df.columns]
     else:
@@ -147,51 +167,28 @@ def get_processed_data(symbol, file_name, live=False):
         df["date"] = pd.to_datetime(df["date"])
     
     df["daily_return"] = df["close"].pct_change()
-    df["sma_10"] = df["close"].rolling(10).mean()
-    df["sma_20"] = df["close"].rolling(20).mean()
-    df["sma_50"] = df["close"].rolling(50).mean()
-    
-    # RSI calculation
-    delta = df['close'].diff()
-    gain = delta.where(delta > 0, 0)
-    loss = -delta.where(delta < 0, 0)
-    avg_gain = gain.rolling(14).mean()
-    avg_loss = loss.rolling(14).mean()
-    rs = avg_gain / avg_loss
-    df['rsi'] = 100 - (100 / (1 + rs))
-    
     return df.dropna()
 
 # ================= INDICATORS =================
 def calculate_indicators(df):
+    """Calculate SMA20, SMA50 and RSI14."""
     # SMA
     df["sma_20"] = df["close"].rolling(20).mean()
     df["sma_50"] = df["close"].rolling(50).mean()
+
     # RSI 14
     delta = df["close"].diff()
     gain = delta.clip(lower=0)
     loss = -1 * delta.clip(upper=0)
     avg_gain = gain.rolling(14).mean()
     avg_loss = loss.rolling(14).mean()
-    rs = avg_gain / (avg_loss + 1e-6)
+    rs = avg_gain / (avg_loss + 1e-6)  # avoid divide by zero
     df["rsi_14"] = 100 - (100 / (1 + rs))
+    
     return df
 
-# ================= INDICATORS =================
-def calculate_indicators(df):
-    # SMA
-    df["sma_20"] = df["close"].rolling(20).mean()
-    df["sma_50"] = df["close"].rolling(50).mean()
-    # RSI 14
-    delta = df["close"].diff()
-    gain = delta.clip(lower=0)
-    loss = -1 * delta.clip(upper=0)
-    avg_gain = gain.rolling(14).mean()
-    avg_loss = loss.rolling(14).mean()
-    rs = avg_gain / (avg_loss + 1e-6)
-    df["rsi_14"] = 100 - (100 / (1 + rs))
-    return df
-
+# ================= APPLY DATA & INDICATORS =================
+df = get_processed_data(stock_name, stocks[stock_name], use_live)
 df = calculate_indicators(df)
 latest = df.iloc[-1]
 
