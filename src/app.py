@@ -16,14 +16,10 @@ from recommendation import generate_recommendation
 from portfolio import show_portfolio
 from prediction import show_price_prediction
 
-# ================= PAGE CONFIG =================
-st.set_page_config(
-    page_title="Trendify – Track Trends. Predict Smarter.",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+#  PAGE CONFIG 
+st.set_page_config(page_title="Trendify – Track Trends. Predict Smarter.",layout="wide",initial_sidebar_state="expanded")
 
-# ================= FANCY CSS =================
+#  CSS 
 st.markdown("""
 <style>
 html, body, [class*="css"] {font-family: 'Inter', sans-serif; background-color: #F8FAFC;}
@@ -52,10 +48,14 @@ if "learning_mode" not in st.session_state: st.session_state.learning_mode = Fal
 # ================= AUTH UI =================
 def login_signup_ui():
     st.markdown("<h1 style='text-align:center; color:#1E293B;'>Trendify</h1>", unsafe_allow_html=True)
+
     tab1, tab2 = st.tabs(["Login", "Signup"])
+
+    # LOGIN
     with tab1:
         u = st.text_input("Username")
         p = st.text_input("Password", type="password")
+
         if st.button("Sign In", use_container_width=True):
             users = st.session_state.users
             if u in users and users[u][1] == p:
@@ -63,10 +63,23 @@ def login_signup_ui():
                 st.session_state.username = u
                 st.session_state.user_id = users[u][0]
                 st.rerun()
-            else: st.error("Invalid credentials")
-if not st.session_state.logged_in:
-    login_signup_ui()
-    st.stop()
+            else:
+                st.error("Invalid credentials")
+
+    # SIGNUP
+    with tab2:
+        new_user = st.text_input("Create Username")
+        new_password = st.text_input("Create Password", type="password")
+
+        if st.button("Create Account", use_container_width=True):
+            users = st.session_state.users
+
+            if new_user in users:
+                st.warning("Username already exists")
+            else:
+                add_user(new_user, new_password)
+                st.session_state.users = get_users()
+                st.success("Account created successfully! Please login.")
 
 # ================= SIDEBAR =================
 with st.sidebar:

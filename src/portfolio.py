@@ -20,17 +20,13 @@ def get_live_price(symbol):
 # ==============================
 # Tracked Stocks
 # ==============================
-STOCK_LIST = {
-    "Reliance Industries": "RELIANCE.NS",
-    "TCS": "TCS.NS",
-    "Infosys": "INFY.NS",
-    "HDFC Bank": "HDFCBANK.NS",
-    "ICICI Bank": "ICICIBANK.NS"
-}
-
-# ==============================
+STOCK_LIST = {"Reliance Industries": "RELIANCE.NS",
+            "TCS": "TCS.NS",
+             "Infosys": "INFY.NS",
+            "HDFC Bank": "HDFCBANK.NS",
+             "ICICI Bank": "ICICIBANK.NS"
+             }
 # Portfolio UI
-# ==============================
 def show_portfolio():
     st.subheader("💼 Your Portfolio")
 

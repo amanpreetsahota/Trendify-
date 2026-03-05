@@ -11,10 +11,7 @@ def show_price_prediction(df, reg_model, days=7):
     for i in range(days):
         latest = temp_df.iloc[-1]
 
-        features = [
-            "open", "high", "low", "close", "volume",
-            "daily_return", "sma_10", "sma_50"
-        ]
+        features = ["open", "high", "low", "close", "volume","daily_return", "sma_10", "sma_50"]
 
         X = latest[features].values.reshape(1, -1)
         pred_price = reg_model.predict(X)[0]
@@ -34,9 +31,7 @@ def show_price_prediction(df, reg_model, days=7):
         new_row["close"] = pred_price
         new_row["volume"] = latest["volume"]
 
-        new_row["daily_return"] = (
-            pred_price - latest["close"]
-        ) / latest["close"]
+        new_row["daily_return"] = (pred_price - latest["close"]) / latest["close"]
 
         temp_df = pd.concat([temp_df, pd.DataFrame([new_row])], ignore_index=True)
 
@@ -46,8 +41,7 @@ def show_price_prediction(df, reg_model, days=7):
 
     future_df = pd.DataFrame({
         "Day": [f"Day {i+1}" for i in range(days)],
-        "Predicted Close": [round(price, 2) for price in future_prices]
-    })
+        "Predicted Close": [round(price, 2) for price in future_prices]})
 
     st.dataframe(future_df)
     st.area_chart(future_df.set_index("Day"))
