@@ -51,6 +51,9 @@ if "username" not in st.session_state:
 if "user_id" not in st.session_state:
     st.session_state.user_id = None
 
+if "learning_mode" not in st.session_state:
+    st.session_state.learning_mode = False
+
 
 # ================= AUTH UI =================
 def login_signup_ui():
@@ -121,6 +124,19 @@ with st.sidebar:
         st.session_state.user_id = None
 
         st.rerun()
+# ================= STOCK SELECTION =================
+
+stocks = {
+    "TCS": "TCS.csv",
+    "INFY": "INFY.csv",
+    "RELIANCE": "RELIANCE.csv",
+    "HDFCBANK": "HDFCBANK.csv",
+    "ICICIBANK": "ICICIBANK.csv"
+}
+
+stock_name = st.sidebar.selectbox("Select Stock", list(stocks.keys()))
+
+use_live = st.sidebar.toggle("Use Live Market Data", value=True)
 
 # ================= DATA FETCHING =================
 @st.cache_data(ttl=300)
