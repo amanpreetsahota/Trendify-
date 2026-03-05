@@ -69,17 +69,16 @@ def login_signup_ui():
     # SIGNUP
     with tab2:
         new_user = st.text_input("Create Username")
-        new_password = st.text_input("Create Password", type="password")
+        new_pass = st.text_input("Create Password", type="password")
 
         if st.button("Create Account", use_container_width=True):
             users = st.session_state.users
-
             if new_user in users:
-                st.warning("Username already exists")
+                st.error("Username already exists")
             else:
-                add_user(new_user, new_password)
-                st.session_state.users = get_users()
+                user_id = add_user(new_user, new_pass)
                 st.success("Account created successfully! Please login.")
+                st.session_state.users = get_users()
 
 # ================= SIDEBAR =================
 with st.sidebar:
