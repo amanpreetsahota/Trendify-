@@ -33,13 +33,29 @@ def get_investment_recommendation(pe_ratio, price, eps, market_cap):
 def show_fundamentals(symbol, latest_price=None):
     st.subheader("📊 Fundamental Analysis")
     try:
-        stock = yf.Ticker(symbol + ".NS")
-        info = stock.info
+        @st.cache_data(ttl=900)
+def get_stock_info(symbol):
+    try:
+        ticker = yf.Ticker(symbol)
+        fi = ticker.fast_info
+    if not info:
+        st.warning("Fundamental data unavailable for this stock.")
+        return
+
+        return {
+            "marketCap": fi.get("marketCap"),
+            "lastPrice": fi.get("lastPrice"),
+            "dayHigh": fi.get("dayHigh"),
+            "dayLow": fi.get("dayLow")
+        }
+
+    except:
+        return {}
 
         # ================= BASIC METRICS =================
         market_cap = info.get("marketCap") or 500_000_000_000
-        pe_ratio = info.get("trailingPE") or 22
-        eps = info.get("trailingEps") or 45
+        pe_ratio =  22
+        eps = 45
         revenue = info.get("totalRevenue") or 100_000_000_000
         net_income = info.get("netIncomeToCommon") or 20_000_000_000
 
