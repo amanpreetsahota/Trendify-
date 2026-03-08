@@ -184,8 +184,15 @@ if df is None or df.empty:
     st.error(f"No data available for {stock_name}")
     st.stop()
 # ================= FUNDAMENTALS =================
-ticker = yf.Ticker(stock_name + ".NS")
-info = ticker.info
+@st.cache_data(ttl=900)
+def get_fast_info(symbol):
+    try:
+        ticker = yf.Ticker(symbol)
+        return ticker.fast_info
+    except:
+        return {}
+
+info = get_fast_info(stock_name + ".NS")
 
 # ================= LOAD MODEL =================
 reg_model_filename = f"{stock_name}.NS_rf_regression.pkl"
