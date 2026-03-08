@@ -188,11 +188,17 @@ if df is None or df.empty:
 def get_fast_info(symbol):
     try:
         ticker = yf.Ticker(symbol)
-        return ticker.fast_info
-    except:
-        return {}
+        fi = ticker.fast_info
 
-info = get_fast_info(stock_name + ".NS")
+        return {
+            "lastPrice": fi.get("lastPrice"),
+            "marketCap": fi.get("marketCap"),
+            "dayHigh": fi.get("dayHigh"),
+            "dayLow": fi.get("dayLow")
+        }
+
+    except:
+        return {}".NS")
 
 # ================= LOAD MODEL =================
 reg_model_filename = f"{stock_name}.NS_rf_regression.pkl"
