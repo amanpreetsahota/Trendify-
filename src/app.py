@@ -198,7 +198,8 @@ def get_fast_info(symbol):
         }
 
     except:
-        return {}".NS")
+        return {}
+info = get_fast_info(stock_name + ".NS")
 
 # ================= LOAD MODEL =================
 reg_model_filename = f"{stock_name}.NS_rf_regression.pkl"
